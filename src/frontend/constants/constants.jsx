@@ -281,7 +281,7 @@ export const CHARGE_AND_DISCOUNT = {
   discount: 0,
 };
 
-export const MIN_DISTANCE_BETWEEN_THUMBS = 1000;
+export const MIN_DISTANCE_BETWEEN_THUMBS = 100;
 export const MAX_RESPONSES_IN_CACHE_TO_STORE = 50;
 
 // WhatsApp de la tienda - ACTUALIZADO
