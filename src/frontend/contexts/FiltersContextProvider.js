@@ -21,7 +21,9 @@ const FiltersContextProvider = ({ children }) => {
     categories: categoriesFromProductsContext,
   } = useAllProductsContext();
 
+  // SINCRONIZACIÓN INICIAL Y AUTOMÁTICA CON PRODUCTOS Y CATEGORÍAS
   useEffect(() => {
+    console.log('🔄 Sincronizando filtros con productos y categorías actualizados');
     dispatch({
       type: FILTERS_ACTION.GET_PRODUCTS_FROM_PRODUCT_CONTEXT,
       payload: {
@@ -30,7 +32,76 @@ const FiltersContextProvider = ({ children }) => {
       },
     });
   }, [categoriesFromProductsContext, productsFromProductsContext]);
-  // earlier they were products& categories were loading so [], [], after loading they will be filled with data, so when there value change useEffect is called!!
+
+  // ESCUCHAR EVENTOS DE ACTUALIZACIÓN DE PRODUCTOS PARA SINCRONIZACIÓN AUTOMÁTICA
+  useEffect(() => {
+    const handleProductsUpdate = (event) => {
+      const { products: updatedProducts } = event.detail;
+      console.log('📡 Evento de actualización de productos recibido en FiltersContext');
+      
+      // Sincronizar automáticamente con los nuevos productos
+      dispatch({
+        type: FILTERS_ACTION.SYNC_WITH_UPDATED_PRODUCTS,
+        payload: {
+          products: updatedProducts,
+          categories: categoriesFromProductsContext,
+        },
+      });
+    };
+
+    const handleCategoriesUpdate = (event) => {
+      const { categories: updatedCategories } = event.detail;
+      console.log('📡 Evento de actualización de categorías recibido en FiltersContext');
+      
+      // Sincronizar automáticamente con las nuevas categorías
+      dispatch({
+        type: FILTERS_ACTION.SYNC_WITH_UPDATED_PRODUCTS,
+        payload: {
+          products: productsFromProductsContext,
+          categories: updatedCategories,
+        },
+      });
+    };
+
+    const handleConfigUpdate = () => {
+      console.log('📡 Evento de actualización de configuración recibido en FiltersContext');
+      
+      // Recargar desde localStorage para obtener los datos más actualizados
+      const savedConfig = localStorage.getItem('adminStoreConfig');
+      if (savedConfig) {
+        try {
+          const parsedConfig = JSON.parse(savedConfig);
+          dispatch({
+            type: FILTERS_ACTION.SYNC_WITH_UPDATED_PRODUCTS,
+            payload: {
+              products: parsedConfig.products || productsFromProductsContext,
+              categories: parsedConfig.categories || categoriesFromProductsContext,
+            },
+          });
+        } catch (error) {
+          console.error('Error al cargar configuración en FiltersContext:', error);
+        }
+      }
+    };
+
+    // Agregar listeners para sincronización automática
+    window.addEventListener('productsUpdated', handleProductsUpdate);
+    window.addEventListener('productsConfigUpdated', handleProductsUpdate);
+    window.addEventListener('categoriesUpdated', handleCategoriesUpdate);
+    window.addEventListener('categoriesConfigUpdated', handleCategoriesUpdate);
+    window.addEventListener('forceStoreUpdate', handleConfigUpdate);
+    window.addEventListener('adminConfigChanged', handleConfigUpdate);
+
+    // Cleanup
+    return () => {
+      window.removeEventListener('productsUpdated', handleProductsUpdate);
+      window.removeEventListener('productsConfigUpdated', handleProductsUpdate);
+      window.removeEventListener('categoriesUpdated', handleCategoriesUpdate);
+      window.removeEventListener('categoriesConfigUpdated', handleCategoriesUpdate);
+      window.removeEventListener('forceStoreUpdate', handleConfigUpdate);
+      window.removeEventListener('adminConfigChanged', handleConfigUpdate);
+    };
+  }, [productsFromProductsContext, categoriesFromProductsContext]);
 
   // called due to the onChange of category checkbox in the Filters component!
   const updateCategoryFilter = (categoryClicked) => {
@@ -129,6 +200,17 @@ const FiltersContextProvider = ({ children }) => {
     });
   };
 
+  // NUEVA FUNCIÓN PARA SINCRONIZACIÓN MANUAL
+  const syncFiltersWithProducts = (products, categories) => {
+    dispatch({
+      type: FILTERS_ACTION.SYNC_WITH_UPDATED_PRODUCTS,
+      payload: {
+        products,
+        categories,
+      },
+    });
+  };
+
   return (
     <FiltersContext.Provider
       value={{
@@ -141,6 +223,7 @@ const FiltersContextProvider = ({ children }) => {
         updateSearchFilterInContext,
         updatePaginatedIndex,
         updatePriceFilter,
+        syncFiltersWithProducts,
       }}
     >
       {children}

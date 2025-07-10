@@ -65,19 +65,55 @@ const calculatePriceRange = (products) => {
   };
 };
 
+// FUNCIÓN PARA OBTENER CATEGORÍAS HABILITADAS DINÁMICAMENTE
+const getEnabledCategories = (products, categories = []) => {
+  // Obtener categorías desde productos (siempre actualizado)
+  const categoriesFromProducts = [...new Set(
+    products
+      .map(product => product.category)
+      .filter(Boolean)
+  )];
+
+  // Si tenemos información de categorías con estado disabled, filtrar
+  if (categories && categories.length > 0) {
+    const enabledCategoryNames = categories
+      .filter(category => !category.disabled)
+      .map(category => category.categoryName);
+    
+    // Retornar solo las categorías que están habilitadas Y tienen productos
+    return categoriesFromProducts.filter(categoryName => 
+      enabledCategoryNames.includes(categoryName)
+    );
+  }
+
+  // Si no hay información de categorías, retornar todas las que tienen productos
+  return categoriesFromProducts;
+};
+
+// FUNCIÓN PARA OBTENER MARCAS DISPONIBLES DINÁMICAMENTE
+const getAvailableCompanies = (products) => {
+  return [...new Set(
+    products
+      .map(product => product.company)
+      .filter(Boolean)
+  )];
+};
+
 export const filtersReducer = (state, action) => {
   switch (action.type) {
     case FILTERS_ACTION.GET_PRODUCTS_FROM_PRODUCT_CONTEXT:
-      const allProductsCloned = structuredClone(action.payload?.products);
+      const allProductsCloned = structuredClone(action.payload?.products || []);
+      const categoriesData = action.payload?.categories || [];
       
       // CÁLCULO DINÁMICO DE RANGOS DE PRECIO MEJORADO Y AMIGABLE
       const { minPrice, maxPrice } = calculatePriceRange(allProductsCloned);
 
       const filteredProducts = givePaginatedList(allProductsCloned);
 
-      const allCategoryNames = action.payload?.categories
-        .filter(category => !category.disabled) // Solo categorías habilitadas
-        .map(({ categoryName }) => categoryName);
+      // OBTENER CATEGORÍAS HABILITADAS DINÁMICAMENTE
+      const enabledCategoryNames = getEnabledCategories(allProductsCloned, categoriesData);
+
+      console.log(`🔄 Filtros actualizados: ${allProductsCloned.length} productos, ${enabledCategoryNames.length} categorías habilitadas`);
 
       return {
         ...state,
@@ -87,7 +123,7 @@ export const filtersReducer = (state, action) => {
         maxPrice,
         filters: {
           ...state.filters,
-          category: convertArrayToObjectWithPropertyFALSE(allCategoryNames),
+          category: convertArrayToObjectWithPropertyFALSE(enabledCategoryNames),
           price: [minPrice, maxPrice],
         },
         displayableProductsLength: allProductsCloned.length,
@@ -140,7 +176,7 @@ export const filtersReducer = (state, action) => {
     case FILTERS_ACTION.CLEAR_FILTERS:
       const { category } = state.filters;
       const allUncheckedCategoryObj = convertArrayToObjectWithPropertyFALSE(
-        Object.keys(category)
+        Object.keys(category || {})
       );
       return {
         ...state,
@@ -174,7 +210,7 @@ export const filtersReducer = (state, action) => {
         sortByOption,
       } = filters;
 
-      const isAnyCheckboxChecked = Object.values(categoryObjInState).some(
+      const isAnyCheckboxChecked = categoryObjInState && Object.values(categoryObjInState).some(
         (categoryBool) => categoryBool
       );
 
@@ -193,16 +229,16 @@ export const filtersReducer = (state, action) => {
         );
       });
 
-      // FILTRO DE CATEGORÍA
-      if (isAnyCheckboxChecked) {
+      // FILTRO DE CATEGORÍA MEJORADO CON VALIDACIÓN
+      if (isAnyCheckboxChecked && categoryObjInState) {
         tempProducts = tempProducts.filter(
           ({ category: categoryPropertyOfProduct }) =>
             categoryObjInState[categoryPropertyOfProduct]
         );
       }
 
-      // FILTRO DE MARCA
-      if (companyInState !== 'all') {
+      // FILTRO DE MARCA MEJORADO CON VALIDACIÓN
+      if (companyInState && companyInState !== 'all') {
         tempProducts = tempProducts.filter(
           ({ company: companyPropertyOfProduct }) =>
             companyPropertyOfProduct === companyInState
@@ -210,44 +246,52 @@ export const filtersReducer = (state, action) => {
       }
 
       // FILTRO DE PRECIO MEJORADO CON VALIDACIÓN
-      tempProducts = tempProducts.filter(
-        ({ price: pricePropertyOfProduct }) => {
-          const [currMinPriceRange, currMaxPriceRange] = priceInState;
-          return (
-            pricePropertyOfProduct >= currMinPriceRange &&
-            pricePropertyOfProduct <= currMaxPriceRange
-          );
-        }
-      );
-
-      // FILTRO DE CALIFICACIÓN
-      if (ratingInState > -1) {
-        tempProducts = tempProducts.filter(({ stars }) => stars >= ratingInState);
+      if (priceInState && Array.isArray(priceInState) && priceInState.length === 2) {
+        tempProducts = tempProducts.filter(
+          ({ price: pricePropertyOfProduct }) => {
+            const [currMinPriceRange, currMaxPriceRange] = priceInState;
+            return (
+              pricePropertyOfProduct >= currMinPriceRange &&
+              pricePropertyOfProduct <= currMaxPriceRange
+            );
+          }
+        );
       }
 
-      // ORDENAMIENTO MEJORADO
-      if (!!sortByOption) {
+      // FILTRO DE CALIFICACIÓN MEJORADO
+      if (ratingInState > -1) {
+        tempProducts = tempProducts.filter(({ stars }) => 
+          stars && stars >= ratingInState
+        );
+      }
+
+      // ORDENAMIENTO MEJORADO CON VALIDACIÓN
+      if (sortByOption) {
         switch (sortByOption) {
           case SORT_TYPE.PRICE_LOW_TO_HIGH: {
-            tempProducts = [...tempProducts].sort((a, b) => a.price - b.price);
+            tempProducts = [...tempProducts].sort((a, b) => (a.price || 0) - (b.price || 0));
             break;
           }
 
           case SORT_TYPE.PRICE_HIGH_TO_LOW: {
-            tempProducts = [...tempProducts].sort((a, b) => b.price - a.price);
+            tempProducts = [...tempProducts].sort((a, b) => (b.price || 0) - (a.price || 0));
             break;
           }
 
           case SORT_TYPE.NAME_A_TO_Z: {
             tempProducts = [...tempProducts].sort((a, b) => {
-              return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+              const nameA = (a.name || '').toLowerCase();
+              const nameB = (b.name || '').toLowerCase();
+              return nameA.localeCompare(nameB);
             });
             break;
           }
 
           case SORT_TYPE.NAME_Z_TO_A: {
             tempProducts = [...tempProducts].sort((a, b) => {
-              return b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+              const nameA = (a.name || '').toLowerCase();
+              const nameB = (b.name || '').toLowerCase();
+              return nameB.localeCompare(nameA);
             });
             break;
           }
@@ -260,13 +304,53 @@ export const filtersReducer = (state, action) => {
       // PAGINACIÓN
       const paginatedProducts = givePaginatedList(tempProducts);
 
-      console.log(`🔍 Filtros aplicados: ${tempProducts.length} productos encontrados`);
+      console.log(`🔍 Filtros aplicados: ${tempProducts.length} productos encontrados de ${allProducts.length} totales`);
 
       return {
         ...state,
         filteredProducts: paginatedProducts,
         displayableProductsLength: tempProducts.length,
         paginateIndex: 0,
+      };
+
+    // NUEVA ACCIÓN PARA SINCRONIZACIÓN AUTOMÁTICA
+    case FILTERS_ACTION.SYNC_WITH_UPDATED_PRODUCTS:
+      const updatedProducts = action.payload?.products || [];
+      const updatedCategories = action.payload?.categories || [];
+      
+      // Recalcular rangos de precio
+      const { minPrice: newMinPrice, maxPrice: newMaxPrice } = calculatePriceRange(updatedProducts);
+      
+      // Obtener nuevas categorías habilitadas
+      const newEnabledCategories = getEnabledCategories(updatedProducts, updatedCategories);
+      
+      // Mantener filtros existentes pero actualizar opciones disponibles
+      const currentCategoryFilters = state.filters.category || {};
+      const updatedCategoryFilters = {};
+      
+      // Mantener filtros de categorías que aún existen
+      newEnabledCategories.forEach(categoryName => {
+        updatedCategoryFilters[categoryName] = currentCategoryFilters[categoryName] || false;
+      });
+      
+      // Ajustar rango de precio si está fuera de los nuevos límites
+      let adjustedPriceRange = [...(state.filters.price || [newMinPrice, newMaxPrice])];
+      if (adjustedPriceRange[0] < newMinPrice) adjustedPriceRange[0] = newMinPrice;
+      if (adjustedPriceRange[1] > newMaxPrice) adjustedPriceRange[1] = newMaxPrice;
+      
+      console.log(`🔄 Sincronización automática: ${updatedProducts.length} productos, ${newEnabledCategories.length} categorías`);
+      
+      return {
+        ...state,
+        allProducts: updatedProducts,
+        minPrice: newMinPrice,
+        maxPrice: newMaxPrice,
+        filters: {
+          ...state.filters,
+          category: updatedCategoryFilters,
+          price: adjustedPriceRange,
+        },
+        displayableProductsLength: updatedProducts.length,
       };
 
     default:
