@@ -65,7 +65,6 @@ const CheckoutDetails = ({
     setActiveCoupon(couponObjClicked);
     
     // Notificación mejorada con información de descuento y moneda
-    const currency = getCurrentCurrency();
     const discountAmount = Math.floor((totalAmountFromContext * couponObjClicked.discountPercent) / 100);
     
     toastHandler(
@@ -75,7 +74,6 @@ const CheckoutDetails = ({
   };
 
   const cancelCoupon = () => {
-    const currency = getCurrentCurrency();
     toastHandler(ToastType.Warn, `🗑️ Cupón removido - Descuento cancelado`);
     setActiveCoupon(null);
   };
