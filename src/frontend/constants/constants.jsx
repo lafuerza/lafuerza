@@ -1,55 +1,23 @@
-import { 
-  AiFillGithub, 
-  AiFillLinkedin, 
-  AiOutlineTwitter,
-  AiFillFacebook,
-  AiOutlineApi
-} from 'react-icons/ai';
-import { FaNetworkWired } from 'react-icons/fa';
-import { DiDatabase } from 'react-icons/di';
+import { AiFillGithub, AiFillLinkedin, AiOutlineTwitter } from 'react-icons/ai';
 import { v4 as uuid } from 'uuid';
 
 export const FOOTER_LINKS = [
   {
     id: 1,
     icon: <AiOutlineTwitter />,
-    url: 'https://twitter.com/Swastik2001',
+    url: 'https://x.com/yero_shop',
   },
   {
     id: 2,
     icon: <AiFillLinkedin />,
-    url: 'https://www.linkedin.com/in/swastik-patro-2a54bb19b/',
+    url: 'https://www.linkedin.com/in/yero-shop-com-a47599373',
   },
   {
     id: 3,
     icon: <AiFillGithub />,
-    url: 'https://github.com/swastikpatro',
-  },
-  {
-    id: 4,
-    icon: <AiFillFacebook />,
-    url: 'https://facebook.com/yeroshop',
-  },
-  {
-    id: 5,
-    icon: <FaNetworkWired />,
-    url: 'https://yeroshop.vercel.app',
+    url: 'https://yeroportal.vercel.app/',
   },
 ];
-
-// ICONOS DISPONIBLES PARA IMPORTACIÓN Y USO
-export const AVAILABLE_ICONS = {
-  // React Icons AI
-  AiFillGithub,
-  AiFillLinkedin,
-  AiOutlineTwitter,
-  AiFillFacebook,
-  AiOutlineApi,
-  // React Icons FA
-  FaNetworkWired,
-  // React Icons DI
-  DiDatabase,
-};
 
 export const ToastType = {
   Warn: 'warn',
@@ -93,9 +61,6 @@ export const LOGIN_CLICK_TYPE = {
   GuestClick: 'guest',
   RegisterClick: 'register',
   AdminClick: 'admin',
-  GoogleClick: 'google',
-  FacebookClick: 'facebook',
-  AppleClick: 'apple',
 };
 
 export const INCREMENT_DECRMENT_TYPE = {
@@ -281,7 +246,7 @@ export const CHARGE_AND_DISCOUNT = {
   discount: 0,
 };
 
-export const MIN_DISTANCE_BETWEEN_THUMBS = 100;
+export const MIN_DISTANCE_BETWEEN_THUMBS = 1000;
 export const MAX_RESPONSES_IN_CACHE_TO_STORE = 50;
 
 // WhatsApp de la tienda - ACTUALIZADO
@@ -292,7 +257,7 @@ export const DEFAULT_STORE_CONFIG = {
   "storeName": "Yero Shop!",
   "whatsappNumber": "+53 54690878",
   "storeAddress": "Santiago de Cuba, Cuba",
-  "lastModified": "2025-07-05T03:46:50.315Z",
+  "lastModified": "2025-07-10T03:02:21.045Z",
   "version": "1.0.0"
 };
 
@@ -352,21 +317,21 @@ export const CURRENCIES = {
     name: 'Dólar Estadounidense',
     symbol: '$',
     flag: '🇺🇸',
-    rate: 320,
+    rate: 385,
   },
   EUR: {
     code: 'EUR',
     name: 'Euro',
     symbol: '€',
     flag: '🇪🇺',
-    rate: 340,
+    rate: 425,
   },
   MLC: {
     code: 'MLC',
     name: 'Moneda Libremente Convertible',
     symbol: 'MLC',
     flag: '🏦',
-    rate: 270,
+    rate: 240,
   },
 };
 
