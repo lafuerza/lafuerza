@@ -311,7 +311,7 @@ const CheckoutDetails = ({
         if (i === urls.length - 1 && !success) {
           try {
             // Método de emergencia: copiar al portapapeles y mostrar instrucciones
-            const emergencyMessage = `WhatsApp: ${cleanPhone}\n\nMensaje:\n${message}`;
+            const emergencyMessage = `WhatsApp: ${phoneNumber}\n\nPor favor contacta manualmente para completar tu pedido.`;
             
             if (navigator.clipboard && navigator.clipboard.writeText) {
               await navigator.clipboard.writeText(emergencyMessage);
