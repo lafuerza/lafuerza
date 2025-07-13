@@ -1,200 +1,531 @@
-import React, { useState, useRef } from 'react';
 import { useAllProductsContext } from '../../contexts/ProductsContextProvider';
 import { useConfigContext } from '../../contexts/ConfigContextProvider';
 import { useCurrencyContext } from '../../contexts/CurrencyContextProvider';
-import { SERVICE_TYPES, ToastType } from '../../constants/constants';
-import { toastHandler, generateOrderNumber, Popper } from '../../utils/utils';
 import Price from '../Price';
-import CouponSearch from './CouponSearch';
 import styles from './CheckoutDetails.module.css';
+import { useState } from 'react';
+import { VscChromeClose } from 'react-icons/vsc';
 
-const CheckoutDetails = ({ activeAddressId, updateCheckoutStatus, timer }) => {
-  const { 
-    cart: cartFromContext, 
-    cartDetails: { totalAmount: totalAmountFromContext },
+import { CHARGE_AND_DISCOUNT, ToastType, SERVICE_TYPES, PRODUCT_CATEGORY_ICONS } from '../../constants/constants';
+import CouponSearch from './CouponSearch';
+import { toastHandler, Popper, generateOrderNumber } from '../../utils/utils';
+
+import { useAuthContext } from '../../contexts/AuthContextProvider';
+import { useNavigate } from 'react-router-dom';
+
+const CheckoutDetails = ({
+  timer,
+  activeAddressId: activeAddressIdFromProps,
+  updateCheckoutStatus,
+}) => {
+  const {
+    cartDetails: {
+      totalAmount: totalAmountFromContext,
+      totalCount: totalCountFromContext,
+    },
+    addressList: addressListFromContext,
+    cart: cartFromContext,
     clearCartDispatch,
-    addressList: addressListFromContext 
   } = useAllProductsContext();
 
   const { storeConfig } = useConfigContext();
-  const { formatPrice } = useCurrencyContext();
-
-  const [activeCoupon, setActiveCoupon] = useState(null);
-  const [isProcessingOrder, setIsProcessingOrder] = useState(false);
-
-  const SANTIAGO_ZONES = storeConfig.zones || [];
+  const { formatPriceWithCode, getCurrentCurrency, convertFromCUP } = useCurrencyContext();
   const STORE_WHATSAPP = storeConfig.storeInfo?.whatsappNumber || '+53 54690878';
+  const SANTIAGO_ZONES = storeConfig.zones || [];
 
-  // Encontrar la dirección activa
-  const activeAddress = addressListFromContext.find(
-    address => address.addressId === activeAddressId
+  const {
+    user: { firstName, lastName, email },
+  } = useAuthContext();
+  const navigate = useNavigate();
+  const [activeCoupon, setActiveCoupon] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  // Obtener la dirección seleccionada
+  const selectedAddress = addressListFromContext.find(
+    ({ addressId }) => addressId === activeAddressIdFromProps
   );
 
   // Calcular costo de entrega
-  const deliveryCost = activeAddress?.serviceType === SERVICE_TYPES.HOME_DELIVERY
-    ? SANTIAGO_ZONES.find(zone => zone.id === activeAddress.zone)?.cost || 0
+  const deliveryCost = selectedAddress?.serviceType === SERVICE_TYPES.HOME_DELIVERY 
+    ? (selectedAddress?.deliveryCost || 0)
     : 0;
 
-  // Calcular descuento del cupón
-  const couponDiscount = activeCoupon 
-    ? Math.floor((totalAmountFromContext * activeCoupon.discountPercent) / 100)
+  // Calcular descuento del cupón según la moneda seleccionada
+  const priceAfterCouponApplied = activeCoupon
+    ? -Math.floor((totalAmountFromContext * activeCoupon.discountPercent) / 100)
     : 0;
 
-  // Calcular total final
-  const finalTotal = totalAmountFromContext + deliveryCost - couponDiscount;
+  const finalPriceToPay =
+    totalAmountFromContext +
+    deliveryCost +
+    CHARGE_AND_DISCOUNT.discount +
+    priceAfterCouponApplied;
 
-  const updateActiveCoupon = (coupon) => {
-    setActiveCoupon(coupon);
+  const updateActiveCoupon = (couponObjClicked) => {
+    setActiveCoupon(couponObjClicked);
+    
+    // Notificación mejorada con información de descuento y moneda
+    const currency = getCurrentCurrency();
+    const discountAmount = Math.floor((totalAmountFromContext * couponObjClicked.discountPercent) / 100);
+    
+    toastHandler(
+      ToastType.Success, 
+      `🎫 Cupón ${couponObjClicked.couponCode} aplicado: ${couponObjClicked.discountPercent}% de descuento (${formatPriceWithCode(discountAmount)})`
+    );
   };
 
-  const generateWhatsAppMessage = () => {
-    const orderNumber = generateOrderNumber();
-    const orderDate = new Date().toLocaleDateString('es-ES');
+  const cancelCoupon = () => {
+    const currency = getCurrentCurrency();
+    toastHandler(ToastType.Warn, `🗑️ Cupón removido - Descuento cancelado`);
+    setActiveCoupon(null);
+  };
+
+  // Función para obtener icono según categoría del producto
+  const getProductIcon = (category) => {
+    const normalizedCategory = category.toLowerCase();
+    return PRODUCT_CATEGORY_ICONS[normalizedCategory] || PRODUCT_CATEGORY_ICONS.default;
+  };
+
+  // FUNCIÓN MEJORADA PARA DETECTAR DISPOSITIVOS Y SISTEMAS OPERATIVOS
+  const detectDevice = () => {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+    const platform = navigator.platform || '';
     
-    let message = `🛒 *NUEVO PEDIDO - ${orderNumber}*\n`;
-    message += `📅 Fecha: ${orderDate}\n\n`;
+    // Detectar iOS (iPhone, iPad, iPod)
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
     
-    // Información del cliente
-    message += `👤 *DATOS DEL CLIENTE:*\n`;
-    message += `Nombre: ${activeAddress.username}\n`;
-    message += `Móvil: ${activeAddress.mobile}\n\n`;
+    // Detectar macOS
+    const isMacOS = /Macintosh|MacIntel|MacPPC|Mac68K/.test(userAgent) || /Mac/.test(platform);
     
-    // Tipo de servicio
-    message += `🚚 *TIPO DE SERVICIO:*\n`;
-    if (activeAddress.serviceType === SERVICE_TYPES.HOME_DELIVERY) {
-      const zoneName = SANTIAGO_ZONES.find(z => z.id === activeAddress.zone)?.name;
-      message += `Entrega a domicilio\n`;
-      message += `Zona: ${zoneName}\n`;
-      message += `Dirección: ${activeAddress.addressInfo}\n`;
-      message += `Recibe: ${activeAddress.receiverName}\n`;
-      message += `Teléfono: ${activeAddress.receiverPhone}\n\n`;
-    } else {
-      message += `Recoger en local\n`;
-      if (activeAddress.additionalInfo) {
-        message += `Info adicional: ${activeAddress.additionalInfo}\n`;
-      }
-      message += `\n`;
+    // Detectar Android
+    const isAndroid = /Android/.test(userAgent);
+    
+    // Detectar Windows
+    const isWindows = /Windows/.test(userAgent) || /Win/.test(platform);
+    
+    // Detectar Linux
+    const isLinux = /Linux/.test(userAgent) && !isAndroid;
+    
+    // Detectar si es móvil en general
+    const isMobile = /Mobi|Android/i.test(userAgent) || isIOS || 
+                    (window.innerWidth <= 768 && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+    
+    // Detectar si es tablet
+    const isTablet = (/iPad/.test(userAgent)) || 
+                    (isAndroid && !/Mobile/.test(userAgent)) ||
+                    (window.innerWidth >= 768 && window.innerWidth <= 1024 && ('ontouchstart' in window || navigator.maxTouchPoints > 0));
+    
+    // Detectar navegador específico
+    let browser = 'unknown';
+    if (/Chrome/.test(userAgent) && !/Edge|Edg/.test(userAgent)) {
+      browser = 'chrome';
+    } else if (/Safari/.test(userAgent) && !/Chrome/.test(userAgent)) {
+      browser = 'safari';
+    } else if (/Firefox/.test(userAgent)) {
+      browser = 'firefox';
+    } else if (/Edge|Edg/.test(userAgent)) {
+      browser = 'edge';
+    } else if (/Opera|OPR/.test(userAgent)) {
+      browser = 'opera';
     }
     
-    // Productos
-    message += `📦 *PRODUCTOS:*\n`;
+    // Detectar capacidades del dispositivo
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isDesktop = !isMobile && !isTablet;
+    
+    return {
+      isIOS,
+      isMacOS,
+      isAndroid,
+      isWindows,
+      isLinux,
+      isMobile,
+      isTablet,
+      isDesktop,
+      browser,
+      hasTouch,
+      isAppleDevice: isIOS || isMacOS,
+      userAgent,
+      platform
+    };
+  };
+
+  // FUNCIÓN MEJORADA PARA GENERAR URL DE WHATSAPP COMPATIBLE CON TODOS LOS DISPOSITIVOS
+  const generateWhatsAppURL = (message, phoneNumber) => {
+    const device = detectDevice();
+    const cleanPhone = phoneNumber.replace(/[^\d+]/g, '');
+    const encodedMessage = encodeURIComponent(message);
+    
+    console.log('🔍 Dispositivo detectado:', device);
+    console.log('📱 Número limpio:', cleanPhone);
+    
+    // URLs universales que funcionan en todos los dispositivos y navegadores
+    const universalUrls = [];
+    
+    // 1. URL principal wa.me (funciona en todos los dispositivos y navegadores)
+    universalUrls.push(`https://wa.me/${cleanPhone}?text=${encodedMessage}`);
+    
+    // 2. Para dispositivos móviles y tablets: intentar app nativa primero
+    if (device.isMobile || device.isTablet) {
+      universalUrls.unshift(`whatsapp://send?phone=${cleanPhone}&text=${encodedMessage}`);
+    }
+    
+    // 3. Para escritorio: WhatsApp Web como alternativa
+    if (device.isDesktop) {
+      universalUrls.push(`https://web.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}`);
+    }
+    
+    // 4. API de WhatsApp como fallback universal
+    universalUrls.push(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodedMessage}`);
+    
+    console.log(`📱 URLs universales generadas para ${device.isIOS ? 'iOS' : device.isAndroid ? 'Android' : device.isMacOS ? 'macOS' : device.isWindows ? 'Windows' : device.isLinux ? 'Linux' : 'Desconocido'}:`, universalUrls);
+    return universalUrls;
+  };
+
+  // FUNCIÓN MEJORADA PARA INTENTAR ABRIR WHATSAPP CON MÚLTIPLES MÉTODOS
+  const tryOpenWhatsApp = async (urls, orderNumber) => {
+    const device = detectDevice();
+    let success = false;
+    
+    for (let i = 0; i < urls.length; i++) {
+      const url = urls[i];
+      console.log(`🔄 Intentando método ${i + 1}/${urls.length}:`, url);
+      
+      try {
+        // Método 1: Para URLs de esquema (whatsapp://) en móviles y tablets
+        if (url.startsWith('whatsapp://') && (device.isMobile || device.isTablet)) {
+          // Crear un enlace invisible y hacer clic
+          const link = document.createElement('a');
+          link.href = url;
+          link.style.display = 'none';
+          document.body.appendChild(link);
+          
+          // Detectar si la app se abre
+          let appOpened = false;
+          const startTime = Date.now();
+          
+          // Listener para detectar si la página pierde el foco (app se abre)
+          const handleVisibilityChange = () => {
+            if (document.hidden || Date.now() - startTime > 1000) {
+              appOpened = true;
+            }
+          };
+          
+          const handleBlur = () => {
+            appOpened = true;
+          };
+          
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+          window.addEventListener('blur', handleBlur);
+          
+          // Hacer clic en el enlace
+          link.click();
+          
+          // Esperar un momento para ver si la app se abre
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Limpiar
+          document.removeEventListener('visibilitychange', handleVisibilityChange);
+          window.removeEventListener('blur', handleBlur);
+          document.body.removeChild(link);
+          
+          if (appOpened) {
+            console.log('✅ App de WhatsApp abierta exitosamente');
+            success = true;
+            break;
+          } else {
+            console.log('⚠️ App de WhatsApp no disponible, intentando siguiente método...');
+            continue;
+          }
+        }
+        
+        // Método 2: Para URLs HTTPS - abrir en nueva ventana/pestaña
+        if (url.startsWith('https://')) {
+          // Configurar opciones de ventana según el dispositivo
+          let windowFeatures = 'noopener,noreferrer';
+          
+          if (device.isDesktop) {
+            // Para escritorio: ventana popup centrada
+            const width = 800;
+            const height = 600;
+            const left = (window.screen.width - width) / 2;
+            const top = (window.screen.height - height) / 2;
+            windowFeatures = `width=${width},height=${height},left=${left},top=${top},scrollbars=yes,resizable=yes,${windowFeatures}`;
+          }
+          
+          const newWindow = window.open(url, '_blank', windowFeatures);
+          
+          if (newWindow) {
+            console.log('✅ Ventana de WhatsApp abierta exitosamente');
+            
+            // Para móviles y tablets: cerrar la ventana después de un tiempo
+            if (device.isMobile || device.isTablet) {
+              setTimeout(() => {
+                try {
+                  if (!newWindow.closed) {
+                    newWindow.close();
+                  }
+                } catch (e) {
+                  console.log('ℹ️ No se pudo cerrar la ventana automáticamente');
+                }
+              }, 3000);
+            }
+            
+            success = true;
+            break;
+          } else {
+            console.log('⚠️ Bloqueador de ventanas emergentes activo, intentando método alternativo...');
+            
+            // Método alternativo: cambiar la ubicación actual
+            if (i === urls.length - 1) {
+              window.location.href = url;
+              success = true;
+              break;
+            }
+            continue;
+          }
+        }
+        
+        // Método 3: Fallback - crear enlace y hacer clic
+        const fallbackLink = document.createElement('a');
+        fallbackLink.href = url;
+        fallbackLink.target = '_blank';
+        fallbackLink.rel = 'noopener noreferrer';
+        fallbackLink.style.display = 'none';
+        document.body.appendChild(fallbackLink);
+        
+        fallbackLink.click();
+        
+        setTimeout(() => {
+          document.body.removeChild(fallbackLink);
+        }, 1000);
+        
+        console.log('✅ Enlace de fallback ejecutado');
+        success = true;
+        break;
+        
+      } catch (error) {
+        console.log(`❌ Error en método ${i + 1}:`, error);
+        
+        // Si es el último intento y no hemos tenido éxito, intentar método de emergencia
+        if (i === urls.length - 1 && !success) {
+          try {
+            // Método de emergencia: copiar al portapapeles y mostrar instrucciones
+            const emergencyMessage = `WhatsApp: ${cleanPhone}\n\nMensaje:\n${message}`;
+            
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              await navigator.clipboard.writeText(emergencyMessage);
+              console.log('📋 Mensaje copiado al portapapeles como método de emergencia');
+              success = true;
+            }
+          } catch (clipboardError) {
+            console.log('❌ Error al copiar al portapapeles:', clipboardError);
+          }
+        }
+      }
+      
+      // Pequeña pausa entre intentos
+      if (i < urls.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+    
+    return success;
+  };
+
+  const sendToWhatsApp = async (orderData) => {
+    const orderNumber = generateOrderNumber();
+    const currency = getCurrentCurrency();
+    const device = detectDevice();
+    
+    console.log('🚀 Iniciando envío a WhatsApp...');
+    console.log('📱 Dispositivo:', device);
+    console.log('📞 Número de WhatsApp:', STORE_WHATSAPP);
+    
+    let message = `🛒 *NUEVO PEDIDO #${orderNumber}*\n\n`;
+    message += `---------------------------------------------------------------\n`;
+    message += `👤 *INFORMACIÓN DEL CLIENTE*\n`;
+    message += `---------------------------------------------------------------\n`;
+    message += `📝 *Nombre Completo:* ${firstName} ${lastName}\n`;
+    message += `📧 *Correo Electrónico:* ${email}\n`;
+    message += `💱 *Moneda seleccionada:* ${currency.flag} ${currency.name} (${currency.code})\n\n`;
+    
+    // Información del servicio con mejor formato
+    message += `🚚 *DETALLES DE ENTREGA*\n`;
+    message += `---------------------------------------------------------------\n`;
+    
+    if (selectedAddress.serviceType === SERVICE_TYPES.HOME_DELIVERY) {
+      const zoneName = SANTIAGO_ZONES.find(z => z.id === selectedAddress.zone)?.name;
+      message += `📦 *Modalidad:* Entrega a domicilio\n`;
+      message += `📍 *Zona de entrega:* ${zoneName}\n`;
+      message += `🏠 *Dirección completa:* ${selectedAddress.addressInfo}\n`;
+      message += `👤 *Persona que recibe:* ${selectedAddress.receiverName}\n`;
+      message += `📱 *Teléfono del receptor:* ${selectedAddress.receiverPhone}\n`;
+      message += `💰 *Costo de entrega:* ${formatPriceWithCode(deliveryCost)}\n`;
+    } else {
+      message += `📦 *Modalidad:* Recoger en tienda\n`;
+      message += `🏪 *Ubicación:* Yero Shop! - Santiago de Cuba\n`;
+      if (selectedAddress.additionalInfo) {
+        message += `📝 *Información adicional:* ${selectedAddress.additionalInfo}\n`;
+      }
+    }
+    
+    message += `📞 *Teléfono de contacto:* ${selectedAddress.mobile}\n\n`;
+    
+    // Productos con iconos y mejor formato
+    message += `🛍️ *PRODUCTOS SOLICITADOS*\n`;
+    message += `──────────────────────────────────────────────────────────────\n`;
     cartFromContext.forEach((item, index) => {
-      const colorName = item.colors[0]?.color || 'Sin color';
-      message += `${index + 1}. ${item.name}\n`;
-      message += `   Color: ${colorName}\n`;
-      message += `   Cantidad: ${item.qty}\n`;
-      message += `   Precio: ${formatPrice(item.price * item.qty)}\n\n`;
+      const productIcon = getProductIcon(item.category);
+      const colorHex = item.colors[0]?.color || '#000000';
+      const subtotal = item.price * item.qty;
+      
+      message += `${index + 1}. ${productIcon} *${item.name}*\n`;
+      message += `   🎨 *Color:* ${colorHex}\n`;
+      message += `   📊 *Cantidad:* ${item.qty} unidad${item.qty > 1 ? 'es' : ''}\n`;
+      message += `   💵 *Precio unitario:* ${formatPriceWithCode(item.price)}\n`;
+      message += `   💰 *Subtotal:* ${formatPriceWithCode(subtotal)}\n`;
+      message += `   ─────────────────────────────────────────────────────────\n`;
     });
     
-    // Resumen de precios
-    message += `💰 *RESUMEN DE PRECIOS:*\n`;
-    message += `Subtotal: ${formatPrice(totalAmountFromContext)}\n`;
-    
-    if (deliveryCost > 0) {
-      message += `Envío: ${formatPrice(deliveryCost)}\n`;
-    }
+    // Resumen financiero profesional
+    message += `\n💳 *RESUMEN FINANCIERO*\n`;
+    message += `──────────────────────────────────────────────────────────────\n`;
+    message += `🛍️ *Subtotal productos:* ${formatPriceWithCode(totalAmountFromContext)}\n`;
     
     if (activeCoupon) {
-      message += `Cupón (${activeCoupon.couponCode}): -${formatPrice(couponDiscount)}\n`;
+      message += `🎫 *Descuento aplicado (${activeCoupon.couponCode} - ${activeCoupon.discountPercent}%):* -${formatPriceWithCode(Math.abs(priceAfterCouponApplied))}\n`;
     }
     
-    message += `*TOTAL: ${formatPrice(finalTotal)}*\n\n`;
-    message += `¡Gracias por tu pedido! 🎉`;
+    if (deliveryCost > 0) {
+      message += `🚚 *Costo de entrega:* ${formatPriceWithCode(deliveryCost)}\n`;
+    }
     
-    return encodeURIComponent(message);
+    message += `───────────────────────────────────────────────────────────────\n`;
+    message += `💰 *TOTAL A PAGAR: ${formatPriceWithCode(finalPriceToPay)}*\n`;
+    message += `💱 *Moneda: ${currency.flag} ${currency.name} (${currency.code})*\n`;
+    message += `───────────────────────────────────────────────────────────────\n\n`;
+    
+    // Información adicional profesional
+    message += `📅 *Fecha y hora del pedido:*\n`;
+    message += `${new Date().toLocaleString('es-CU', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'America/Havana'
+    })}\n\n`;
+    
+    message += `📋 *Instrucciones importantes:*\n`;
+    message += `• Confirme la disponibilidad de los productos\n`;
+    message += `• Verifique la dirección de entrega\n`;
+    message += `• Coordine horario de entrega/recogida\n`;
+    message += `• Mantenga este número de pedido para referencia\n`;
+    message += `• Los precios están en ${currency.name} (${currency.code})\n\n`;
+    
+    message += `🏪 *Yero Shop!*\n`;
+    message += `"La tienda online de compras hecha a tu medida" ✨\n`;
+    message += `📍 Santiago de Cuba, Cuba\n`;
+    message += `📱 WhatsApp: ${STORE_WHATSAPP}\n`;
+    message += `🌐 Tienda online: https://yeroshop.vercel.app\n\n`;
+    message += `¡Gracias por confiar en nosotros! 🙏\n`;
+    message += `Su satisfacción es nuestra prioridad 💯`;
+
+    // Generar URLs según el dispositivo
+    const whatsappUrls = generateWhatsAppURL(message, STORE_WHATSAPP);
+    
+    // Mostrar notificación específica según el dispositivo
+    if (device.isIOS) {
+      toastHandler(ToastType.Info, `📱 Abriendo WhatsApp en iOS...`);
+    } else if (device.isMacOS) {
+      toastHandler(ToastType.Info, `💻 Abriendo WhatsApp en macOS...`);
+    } else if (device.isAndroid) {
+      toastHandler(ToastType.Info, `🤖 Abriendo WhatsApp en Android...`);
+    } else if (device.isWindows) {
+      toastHandler(ToastType.Info, `🪟 Abriendo WhatsApp en Windows...`);
+    } else if (device.isLinux) {
+      toastHandler(ToastType.Info, `🐧 Abriendo WhatsApp en Linux...`);
+    } else if (device.isTablet) {
+      toastHandler(ToastType.Info, `📱 Abriendo WhatsApp en tablet...`);
+    } else {
+      toastHandler(ToastType.Info, `💻 Abriendo WhatsApp...`);
+    }
+    
+    // Intentar abrir WhatsApp con múltiples métodos
+    const success = await tryOpenWhatsApp(whatsappUrls, orderNumber);
+    
+    if (success) {
+      console.log('✅ WhatsApp abierto exitosamente');
+      toastHandler(ToastType.Success, `✅ Pedido #${orderNumber} enviado a WhatsApp exitosamente`);
+    } else {
+      console.log('❌ No se pudo abrir WhatsApp automáticamente');
+      
+      // Fallback: mostrar información manual
+      let fallbackMessage = `📱 Por favor, abre WhatsApp manualmente y contacta a ${STORE_WHATSAPP} con el pedido #${orderNumber}`;
+      
+      if (device.isDesktop) {
+        fallbackMessage = `💻 Por favor, abre WhatsApp Web (web.whatsapp.com) o la aplicación de escritorio y contacta a ${STORE_WHATSAPP} con el pedido #${orderNumber}`;
+      }
+      
+      toastHandler(ToastType.Warn, fallbackMessage);
+      
+      // Copiar número al portapapeles como ayuda adicional
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(STORE_WHATSAPP);
+          toastHandler(ToastType.Info, `📋 Número de WhatsApp copiado: ${STORE_WHATSAPP}`);
+        }
+      } catch (error) {
+        console.log('No se pudo copiar al portapapeles:', error);
+      }
+    }
+    
+    return orderNumber;
   };
 
-  const handleOrderSubmit = async () => {
-    if (!activeAddressId) {
+  const handlePlaceOrder = async () => {
+    if (!selectedAddress) {
       toastHandler(ToastType.Error, 'Por favor selecciona una dirección de entrega');
       return;
     }
 
-    if (cartFromContext.length === 0) {
-      toastHandler(ToastType.Error, 'Tu carrito está vacío');
-      return;
-    }
-
-    setIsProcessingOrder(true);
+    setIsProcessing(true);
 
     try {
-      // Simular procesamiento del pedido
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Animación de procesamiento
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Generar mensaje de WhatsApp
-      const whatsappMessage = generateWhatsAppMessage();
-      
-      // URLs de WhatsApp para diferentes métodos
-      const whatsappUrls = [
-        `https://wa.me/${STORE_WHATSAPP.replace(/[^\d]/g, '')}?text=${whatsappMessage}`,
-        `https://api.whatsapp.com/send?phone=${STORE_WHATSAPP.replace(/[^\d]/g, '')}&text=${whatsappMessage}`,
-        `whatsapp://send?phone=${STORE_WHATSAPP.replace(/[^\d]/g, '')}&text=${whatsappMessage}`
-      ];
-
-      // Intentar abrir WhatsApp
-      let whatsappOpened = false;
-      
-      for (let i = 0; i < whatsappUrls.length; i++) {
-        try {
-          const newWindow = window.open(whatsappUrls[i], '_blank');
-          
-          if (newWindow && !newWindow.closed) {
-            whatsappOpened = true;
-            break;
-          }
-          
-          // Si no se pudo abrir y hay más URLs, continuar
-          if (i < whatsappUrls.length - 1) {
-            console.log('🔄 Intentando siguiente método...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
-        } catch (error) {
-          console.error(`Error con método ${i + 1}:`, error);
-          
-          if (i < whatsappUrls.length - 1) {
-            console.log('🔄 Intentando siguiente método...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
+      const orderNumber = await sendToWhatsApp({
+        orderNumber: generateOrderNumber(),
+        customer: { firstName, lastName, email },
+        address: selectedAddress,
+        products: cartFromContext,
+        pricing: {
+          subtotal: totalAmountFromContext,
+          deliveryCost,
+          coupon: activeCoupon,
+          total: finalPriceToPay
         }
-      }
+      });
 
-      // Si no se pudo abrir WhatsApp automáticamente
-      if (!whatsappOpened) {
-        const fallbackUrl = whatsappUrls[0];
-        toastHandler(
-          ToastType.Info, 
-          'Si WhatsApp no se abrió automáticamente, copia el enlace del portapapeles'
-        );
-        
-        // Intentar copiar al portapapeles
-        try {
-          await navigator.clipboard.writeText(fallbackUrl);
-          toastHandler(ToastType.Success, 'Enlace de WhatsApp copiado al portapapeles');
-        } catch (clipboardError) {
-          console.error('Error al copiar al portapapeles:', clipboardError);
-        }
-        
-        // Abrir en la misma pestaña como último recurso
-        window.location.href = fallbackUrl;
-      }
-
-      // Limpiar carrito y mostrar éxito
       await clearCartDispatch();
-      
-      // Efectos visuales de éxito
+      updateCheckoutStatus({ showSuccessMsg: true });
+
       Popper();
-      toastHandler(ToastType.Success, '🎉 ¡Pedido enviado exitosamente por WhatsApp!');
-      
-      // Actualizar estado de checkout
+      toastHandler(ToastType.Success, `🎉 Pedido #${orderNumber} procesado exitosamente`);
+
       timer.current = setTimeout(() => {
-        updateCheckoutStatus({ showSuccessMsg: true });
-      }, 1500);
+        updateCheckoutStatus({ showSuccessMsg: false });
+        navigate('/');
+      }, 4000);
 
     } catch (error) {
       console.error('Error al procesar el pedido:', error);
-      toastHandler(ToastType.Error, 'Error al procesar el pedido. Intenta nuevamente.');
+      toastHandler(ToastType.Error, 'Error al procesar el pedido');
     } finally {
-      setIsProcessingOrder(false);
+      setIsProcessing(false);
     }
   };
 
@@ -208,88 +539,72 @@ const CheckoutDetails = ({ activeAddressId, updateCheckoutStatus, timer }) => {
         </h3>
       </div>
 
-      <CouponSearch 
-        activeCoupon={activeCoupon} 
-        updateActiveCoupon={updateActiveCoupon} 
+      <CouponSearch
+        activeCoupon={activeCoupon}
+        updateActiveCoupon={updateActiveCoupon}
       />
 
+      <hr />
+
       <div className={styles.priceBreakdown}>
-        {/* Productos */}
-        {cartFromContext.map(({ _id, name, qty, price, colors }) => (
-          <div key={_id} className={styles.row}>
-            <span>
-              {name} ({qty}x)
-              <div
-                style={{ 
-                  background: colors[0]?.color,
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  display: 'inline-block',
-                  marginLeft: '8px',
-                  border: '1px solid #ccc'
-                }}
-              ></div>
-            </span>
-            <Price amount={price * qty} />
-          </div>
-        ))}
-
-        <hr />
-
-        {/* Subtotal */}
         <div className={styles.row}>
-          <span>Subtotal:</span>
+          <span>
+            🛍️ Precio ({totalCountFromContext} artículo{totalCountFromContext > 1 && 's'})
+          </span>
           <Price amount={totalAmountFromContext} />
         </div>
 
-        {/* Costo de entrega */}
-        {deliveryCost > 0 && (
-          <div className={styles.row}>
-            <span>Costo de entrega:</span>
-            <Price amount={deliveryCost} />
-          </div>
-        )}
-
-        {/* Descuento del cupón */}
         {activeCoupon && (
           <div className={styles.row}>
-            <span>Descuento ({activeCoupon.couponCode}):</span>
-            <Price amount={-couponDiscount} className="text-green" />
+            <div className={styles.couponApplied}>
+              <VscChromeClose
+                type='button'
+                className={styles.closeBtn}
+                onClick={cancelCoupon}
+              />{' '}
+              <p className={styles.couponText}>
+                🎫 Cupón {activeCoupon.couponCode} aplicado ({activeCoupon.discountPercent}%)
+              </p>
+            </div>
+            <Price amount={priceAfterCouponApplied} />
           </div>
         )}
+
+        <div className={styles.row}>
+          <span>
+            {selectedAddress?.serviceType === SERVICE_TYPES.HOME_DELIVERY 
+              ? '🚚 Entrega a domicilio' 
+              : '📦 Gastos de Envío'
+            }
+          </span>
+          <Price amount={deliveryCost} />
+        </div>
       </div>
 
-      {/* Total final */}
-      <div className={styles.totalPrice}>
-        <span>Total Final:</span>
-        <Price amount={finalTotal} />
+      <hr />
+
+      <div className={`${styles.row} ${styles.totalPrice}`}>
+        <span>💰 Precio Total</span>
+        <Price amount={finalPriceToPay} />
       </div>
 
-      {/* Botón de pedido */}
-      <button
-        onClick={handleOrderSubmit}
-        disabled={!activeAddressId || cartFromContext.length === 0 || isProcessingOrder}
-        className={`${styles.orderBtn} ${isProcessingOrder ? styles.processing : ''}`}
+      <button 
+        onClick={handlePlaceOrder} 
+        className={`btn btn-width-100 ${styles.orderBtn} ${isProcessing ? styles.processing : ''}`}
+        disabled={isProcessing}
       >
-        {isProcessingOrder ? (
+        {isProcessing ? (
           <div className={styles.processingContent}>
-            <div className={styles.spinner}></div>
-            <span>Procesando pedido...</span>
+            <span className={styles.spinner}></span>
+            Procesando pedido...
           </div>
         ) : (
           <>
             <span className={styles.whatsappIcon}>📱</span>
-            <span>Realizar Pedido por WhatsApp</span>
+            Realizar Pedido por WhatsApp
           </>
         )}
       </button>
-
-      {!activeAddressId && (
-        <p style={{ textAlign: 'center', color: '#666', fontSize: '0.9rem', marginTop: '1rem' }}>
-          Selecciona una dirección para continuar
-        </p>
-      )}
     </article>
   );
 };
