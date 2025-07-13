@@ -183,7 +183,7 @@ const CheckoutDetails = ({
   };
 
   // FUNCIÓN MEJORADA PARA INTENTAR ABRIR WHATSAPP CON MÚLTIPLES MÉTODOS
-  const tryOpenWhatsApp = async (urls, orderNumber) => {
+  const tryOpenWhatsApp = async (urls, orderNumber, phoneNumber) => {
     const device = detectDevice();
     let success = false;
     
@@ -454,7 +454,7 @@ const CheckoutDetails = ({
     }
     
     // Intentar abrir WhatsApp con múltiples métodos
-    const success = await tryOpenWhatsApp(whatsappUrls, orderNumber);
+    const success = await tryOpenWhatsApp(whatsappUrls, orderNumber, STORE_WHATSAPP);
     
     if (success) {
       console.log('✅ WhatsApp abierto exitosamente');
