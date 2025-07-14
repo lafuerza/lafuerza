@@ -339,7 +339,7 @@ const CheckoutDetails = ({
     
     console.log('🚀 Iniciando envío a WhatsApp...');
     console.log('📱 Dispositivo:', device);
-    console.log('📞 Número de WhatsApp:', STORE_WHATSAPP);
+    console.log('📞 Número de WhatsApp:', storeConfig.storeInfo?.whatsappNumber || '+53 54690878');
     
     let message = `🛒 *NUEVO PEDIDO #${orderNumber}*\n\n`;
     message += `---------------------------------------------------------------\n`;
@@ -427,7 +427,7 @@ const CheckoutDetails = ({
     message += `🏪 *Yero Shop!*\n`;
     message += `"La tienda online de compras hecha a tu medida" ✨\n`;
     message += `📍 Santiago de Cuba, Cuba\n`;
-    message += `📱 WhatsApp: ${STORE_WHATSAPP}\n`;
+    message += `📱 WhatsApp: ${storeConfig.storeInfo?.whatsappNumber || '+53 54690878'}\n`;
     message += `🌐 Tienda online: https://yeroshop.vercel.app\n\n`;
     message += `¡Gracias por confiar en nosotros! 🙏\n`;
     message += `Su satisfacción es nuestra prioridad 💯`;
