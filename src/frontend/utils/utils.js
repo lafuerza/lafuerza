@@ -118,18 +118,18 @@ export const lowerizeAndCheckIncludes = (text, userText) => {
   return text.toLowerCase().includes(userText.toLowerCase());
 };
 
-// Optimización: Memoizar conversión de array a objeto
-export const convertArrayToObjectWithPropertyFALSEMemo = memoize(
-  convertArrayToObjectWithPropertyFALSE,
-  (listOfStrings) => listOfStrings.join(',')
-);
-
 export const convertArrayToObjectWithPropertyFALSE = (listOfStrings = []) => {
   return listOfStrings.reduce((acc, curr) => {
     acc[curr] = false;
     return acc;
   }, {});
 };
+
+// Optimización: Memoizar conversión de array a objeto
+export const convertArrayToObjectWithPropertyFALSEMemo = memoize(
+  convertArrayToObjectWithPropertyFALSE,
+  (listOfStrings) => listOfStrings.join(',')
+);
 
 // Optimización: Usar Map para búsquedas más rápidas
 export const isPresent = (itemId, list) => {

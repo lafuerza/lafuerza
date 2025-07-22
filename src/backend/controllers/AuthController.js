@@ -15,7 +15,7 @@ const sign = require("jwt-encode");
  * body contains {firstName, lastName, email, password}
  * */
 
-export const signupHandler = function (schema, request) {
+export const signupHandler = async function (schema, request) {
   const { email, password, ...rest } = JSON.parse(request.requestBody);
   try {
     // Validación avanzada de email con verificación de existencia
@@ -96,7 +96,7 @@ export const signupHandler = function (schema, request) {
  * body contains {email, password}
  * */
 
-export const loginHandler = function (schema, request) {
+export const loginHandler = async function (schema, request) {
   const { email, password } = JSON.parse(request.requestBody);
   try {
     // Validación avanzada de email para login

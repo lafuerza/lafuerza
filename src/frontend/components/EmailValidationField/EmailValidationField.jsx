@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { validateEmailComplete, generateEmailSuggestions, getEmailProvider } from '../../utils/emailValidation';
-import { toastHandler } from '../../utils/utils';
-import { ToastType } from '../../constants/constants';
 import styles from './EmailValidationField.module.css';
 
 const EmailValidationField = ({
