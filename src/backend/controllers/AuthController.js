@@ -1,6 +1,7 @@
 import { v4 as uuid } from "uuid";
 import { Response } from "miragejs";
 import { formatDate } from "../utils/authUtils";
+import { validateEmailComplete } from "../../frontend/utils/emailValidation";
 const sign = require("jwt-encode");
 
 /**
@@ -17,33 +18,26 @@ const sign = require("jwt-encode");
 export const signupHandler = function (schema, request) {
   const { email, password, ...rest } = JSON.parse(request.requestBody);
   try {
-    // Validación mejorada de email - acepta cualquier proveedor
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    // Validación avanzada de email con verificación de existencia
+    const emailValidation = await validateEmailComplete(email);
+    
+    if (!emailValidation.isValid) {
       return new Response(
         422,
         {},
         {
-          errors: ["Por favor ingresa un email válido de cualquier proveedor (Gmail, Yahoo, Hotmail, etc.)."],
+          errors: [emailValidation.message || "Email inválido"],
         }
       );
     }
 
-    // Validar que el dominio del email sea válido
-    const emailDomain = email.split('@')[1].toLowerCase();
-
-    // Permitir cualquier dominio que tenga al menos un punto y una extensión válida
-    const domainParts = emailDomain.split('.');
-    const hasValidStructure = domainParts.length >= 2 && 
-                             domainParts[domainParts.length - 1].length >= 2 &&
-                             domainParts[0].length >= 1;
-
-    if (!hasValidStructure) {
+    // Verificar si el email existe en el proveedor
+    if (emailValidation.exists === false) {
       return new Response(
         422,
         {},
         {
-          errors: ["El dominio del email no es válido. Usa un proveedor como Gmail, Yahoo, Hotmail, etc."],
+          errors: [`Esta cuenta de ${emailValidation.provider?.name || 'email'} no existe en los servidores del proveedor. Por favor verifica el email o regístrate con una cuenta existente.`],
         }
       );
     }
@@ -105,6 +99,34 @@ export const signupHandler = function (schema, request) {
 export const loginHandler = function (schema, request) {
   const { email, password } = JSON.parse(request.requestBody);
   try {
+    // Validación avanzada de email para login
+    const emailValidation = await validateEmailComplete(email);
+    
+    if (!emailValidation.isValid) {
+      return new Response(
+        422,
+        {},
+        { errors: [emailValidation.message || "Email inválido"] }
+      );
+    }
+
+    // Verificar si el email existe en el proveedor
+    if (emailValidation.exists === false) {
+      return new Response(
+        404,
+        {},
+        { 
+          errors: [
+            `Esta cuenta de ${emailValidation.provider?.name || 'email'} no existe en los servidores del proveedor.`,
+            "Opciones disponibles:",
+            "1. Verifica que el email esté escrito correctamente",
+            "2. Regístrate en nuestra tienda con una cuenta de email existente", 
+            "3. Inicia sesión como invitado para explorar la tienda"
+          ] 
+        }
+      );
+    }
+
     // Verificar si es el super administrador
     if (email === 'admin@gadaelectronics.com' && password === 'root') {
       const adminUser = {
@@ -132,7 +154,15 @@ export const loginHandler = function (schema, request) {
       return new Response(
         404,
         {},
-        { errors: ["El email ingresado no está registrado. Verifica tu email o regístrate."] }
+        { 
+          errors: [
+            "El email ingresado no está registrado en nuestra tienda.",
+            "Opciones disponibles:",
+            "1. Regístrate con este email si existe en tu proveedor",
+            "2. Verifica que el email esté escrito correctamente",
+            "3. Inicia sesión como invitado para explorar la tienda"
+          ] 
+        }
       );
     }
     if (password === foundUser.password) {

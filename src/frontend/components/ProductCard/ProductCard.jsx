@@ -9,7 +9,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Price from '../Price';
 import {
   LOGIN_TOAST,
-  calculateDiscountPercent,
+  calculateDiscountPercentMemo,
   isPresent,
 } from '../../utils/utils';
 import { useAllProductsContext } from '../../contexts/ProductsContextProvider';
@@ -61,7 +61,7 @@ const ProductCard = ({ product }) => {
     productBtnText = 'ir al carrito';
   }
 
-  const discountPercent = calculateDiscountPercent(
+  const discountPercent = calculateDiscountPercentMemo(
     product.price,
     product.originalPrice
   );

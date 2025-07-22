@@ -1,8 +1,8 @@
 import { SORT_TYPE } from '../constants/constants';
 import { FILTERS_ACTION } from '../utils/actions';
 import {
-  convertArrayToObjectWithPropertyFALSE,
-  givePaginatedList,
+  convertArrayToObjectWithPropertyFALSEMemo,
+  givePaginatedListMemo,
   lowerizeAndCheckIncludes,
 } from '../utils/utils';
 
@@ -40,7 +40,7 @@ export const filtersReducer = (state, action) => {
 
       const allPrices = allProductsCloned.map(({ price }) => price);
 
-      const filteredProducts = givePaginatedList(allProductsCloned);
+      const filteredProducts = givePaginatedListMemo(allProductsCloned);
 
       const allCategoryNames = action.payload?.categories.map(
         ({ categoryName }) => categoryName
@@ -62,7 +62,7 @@ export const filtersReducer = (state, action) => {
         maxPrice,
         filters: {
           ...state.filters,
-          category: convertArrayToObjectWithPropertyFALSE(allCategoryNames),
+          category: convertArrayToObjectWithPropertyFALSEMemo(allCategoryNames),
           price: [minPrice, maxPrice],
         },
       };
@@ -114,7 +114,7 @@ export const filtersReducer = (state, action) => {
 
     case FILTERS_ACTION.CLEAR_FILTERS:
       const { category } = state.filters;
-      const allUncheckedCategoryObj = convertArrayToObjectWithPropertyFALSE(
+      const allUncheckedCategoryObj = convertArrayToObjectWithPropertyFALSEMemo(
         Object.keys(category)
       );
       return {
@@ -239,7 +239,7 @@ export const filtersReducer = (state, action) => {
       }
 
       // pagination logic
-      tempProducts = givePaginatedList(tempProducts);
+      tempProducts = givePaginatedListMemo(tempProducts);
 
       return {
         ...state,

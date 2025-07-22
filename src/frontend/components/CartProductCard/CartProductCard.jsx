@@ -1,5 +1,5 @@
 import {
-  calculateDiscountPercent,
+  calculateDiscountPercentMemo,
   isPresent,
   toastHandler,
 } from '../../utils/utils';
@@ -30,7 +30,7 @@ const CartProductCard = ({ singleCartItem }) => {
 
   const { color, colorQuantity } = colors[0];
 
-  const discountPercent = calculateDiscountPercent(price, originalPrice);
+  const discountPercent = calculateDiscountPercentMemo(price, originalPrice);
 
   const [isAllBtnsDisabled, setIsAllBtnsDisabled] = useState(false);
 
