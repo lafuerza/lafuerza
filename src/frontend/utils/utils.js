@@ -137,12 +137,6 @@ export const isPresent = (itemId, list) => {
   return list.some(item => item._id === itemId);
 };
 
-// Optimización: Memoizar paginación
-export const givePaginatedListMemo = memoize(
-  givePaginatedList,
-  (list) => `${list.length}-${ITEMS_PER_PAGE}`
-);
-
 export const givePaginatedList = (list) => {
   if (!Array.isArray(list) || list.length === 0) return [[]];
   return Array.from(
@@ -150,6 +144,12 @@ export const givePaginatedList = (list) => {
     (_, i) => list.slice(ITEMS_PER_PAGE * i, ITEMS_PER_PAGE * (i + 1))
   );
 };
+
+// Optimización: Memoizar paginación
+export const givePaginatedListMemo = memoize(
+  givePaginatedList,
+  (list) => `${list.length}-${ITEMS_PER_PAGE}`
+);
 
 // Optimización: Confetti con mejor rendimiento
 let confettiAnimationId = null;
