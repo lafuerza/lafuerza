@@ -105,8 +105,8 @@ const LoginPage = () => {
       
       if (error?.response?.data?.errors && error.response.data.errors.length > 0) {
         errorText = error.response.data.errors[0];
-      } else if (error?.message) {
-        errorText = error.message;
+      } else if (error?.response?.data?.error) {
+        errorText = error.response.data.error;
       }
       
       toastHandler(ToastType.Error, errorText);
@@ -135,7 +135,7 @@ const LoginPage = () => {
           type='email'
           name='email'
           id='email'
-          placeholder='tu-email@ejemplo.com'
+          placeholder='tu-email@gmail.com, @yahoo.com, @hotmail.com...'
           value={userInputs.email}
           handleChange={handleUserInput}
           disabled={!!activeBtnLoader}
