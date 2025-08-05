@@ -1,5 +1,4 @@
 import { AiFillLinkedin, AiOutlineTwitter } from 'react-icons/ai';
-import { MdOutlineFacebook } from 'react-icons/md';
 
 export const FOOTER_LINKS = [
   {

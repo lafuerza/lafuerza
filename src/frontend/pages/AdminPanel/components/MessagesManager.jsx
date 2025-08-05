@@ -6,7 +6,6 @@ import styles from './MessagesManager.module.css';
 const MessagesManager = () => {
   const [messages, setMessages] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Mensajes predefinidos de la tienda organizados por categorías
@@ -120,7 +119,7 @@ const MessagesManager = () => {
     } else {
       setMessages(defaultMessages);
     }
-  }, []);
+  }, [defaultMessages]);
 
   const saveMessages = (newMessages) => {
     setMessages(newMessages);

@@ -1,5 +1,5 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { getFromLocalStorage, setIntoLocalStorage } from '../utils/utils';
+import { createContext, useContext, useState } from 'react';
+import { getFromLocalStorage } from '../utils/utils';
 import { LOCAL_STORAGE_KEYS, SUPER_ADMIN } from '../constants/constants';
 
 const AuthContext = createContext(null);
