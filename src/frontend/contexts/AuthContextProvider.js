@@ -27,23 +27,6 @@ const AuthContextProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      setUser((prev) => ({ ...prev, cart: [], wishlist: [] }));
-
-      setIntoLocalStorage(LOCAL_STORAGE_KEYS.User, {
-        ...user,
-        cart: [],
-        wishlist: [],
-      });
-
-      // Verificar si es admin al cargar
-      if (user.email === SUPER_ADMIN.email) {
-        setIsAdmin(true);
-      }
-    }
-  }, []);
-
   return (
     <AuthContext.Provider value={{ user, token, isAdmin, updateUserAuth }}>
       {children}
