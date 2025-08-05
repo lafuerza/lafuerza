@@ -1,7 +1,6 @@
 import { v4 as uuid } from "uuid";
 import { Response } from "miragejs";
 import { formatDate } from "../utils/authUtils";
-import { validateEmailComplete } from "../../frontend/utils/emailValidation";
 const sign = require("jwt-encode");
 
 /**
@@ -15,29 +14,17 @@ const sign = require("jwt-encode");
  * body contains {firstName, lastName, email, password}
  * */
 
-export const signupHandler = async function (schema, request) {
+export const signupHandler = function (schema, request) {
   const { email, password, ...rest } = JSON.parse(request.requestBody);
   try {
-    // Validación avanzada de email con verificación de existencia
-    const emailValidation = await validateEmailComplete(email);
-    
-    if (!emailValidation.isValid) {
+    // Validación básica de email - acepta cualquier formato válido
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
       return new Response(
         422,
         {},
         {
-          errors: [emailValidation.message || "Email inválido"],
-        }
-      );
-    }
-
-    // Verificar si el email existe en el proveedor
-    if (emailValidation.exists === false) {
-      return new Response(
-        422,
-        {},
-        {
-          errors: [`Esta cuenta de ${emailValidation.provider?.name || 'email'} no existe en los servidores del proveedor. Por favor verifica el email o regístrate con una cuenta existente.`],
+          errors: ["Por favor ingresa un email válido."],
         }
       );
     }
@@ -96,37 +83,9 @@ export const signupHandler = async function (schema, request) {
  * body contains {email, password}
  * */
 
-export const loginHandler = async function (schema, request) {
+export const loginHandler = function (schema, request) {
   const { email, password } = JSON.parse(request.requestBody);
   try {
-    // Validación avanzada de email para login
-    const emailValidation = await validateEmailComplete(email);
-    
-    if (!emailValidation.isValid) {
-      return new Response(
-        422,
-        {},
-        { errors: [emailValidation.message || "Email inválido"] }
-      );
-    }
-
-    // Verificar si el email existe en el proveedor
-    if (emailValidation.exists === false) {
-      return new Response(
-        404,
-        {},
-        { 
-          errors: [
-            `Esta cuenta de ${emailValidation.provider?.name || 'email'} no existe en los servidores del proveedor.`,
-            "Opciones disponibles:",
-            "1. Verifica que el email esté escrito correctamente",
-            "2. Regístrate en nuestra tienda con una cuenta de email existente", 
-            "3. Inicia sesión como invitado para explorar la tienda"
-          ] 
-        }
-      );
-    }
-
     // Verificar si es el super administrador
     if (email === 'admin@gadaelectronics.com' && password === 'root') {
       const adminUser = {
@@ -154,15 +113,7 @@ export const loginHandler = async function (schema, request) {
       return new Response(
         404,
         {},
-        { 
-          errors: [
-            "El email ingresado no está registrado en nuestra tienda.",
-            "Opciones disponibles:",
-            "1. Regístrate con este email si existe en tu proveedor",
-            "2. Verifica que el email esté escrito correctamente",
-            "3. Inicia sesión como invitado para explorar la tienda"
-          ] 
-        }
+        { errors: ["El email ingresado no está registrado. Verifica tu email o regístrate."] }
       );
     }
     if (password === foundUser.password) {

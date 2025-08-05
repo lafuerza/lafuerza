@@ -5,7 +5,6 @@ import {
   PasswordRow,
   Title,
 } from '../components';
-import EmailValidationField from '../components/EmailValidationField/EmailValidationField';
 import { useFormInput, useNavigateIfRegistered } from '../hooks';
 import { setIntoLocalStorage, toastHandler } from '../utils/utils';
 import { ToastType, LOCAL_STORAGE_KEYS } from '../constants/constants';
@@ -29,11 +28,6 @@ const SignupPage = () => {
   });
 
   const [isSignupFormLoading, setIsSignupFormLoading] = useState(false);
-  const [emailValidation, setEmailValidation] = useState({ isValid: false, message: '' });
-
-  const handleEmailValidationChange = (validation) => {
-    setEmailValidation(validation);
-  };
 
   const handleCreateAccount = async (e) => {
     e.preventDefault();
@@ -54,9 +48,10 @@ const SignupPage = () => {
       return;
     }
 
-    // Validar que el email sea válido y existente
-    if (!emailValidation.isValid) {
-      toastHandler(ToastType.Error, 'Por favor ingresa un email válido y existente en tu proveedor');
+    // Validación de formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(userInputs.email.trim())) {
+      toastHandler(ToastType.Error, 'Por favor ingresa un email válido');
       return;
     }
 
@@ -107,26 +102,7 @@ const SignupPage = () => {
       let errorText = 'Error al crear la cuenta. Intenta nuevamente.';
       
       if (error?.response?.data?.errors && error.response.data.errors.length > 0) {
-        const errors = error.response.data.errors;
-        if (errors.length > 1) {
-          // Mostrar mensaje detallado para cuentas no existentes
-          errorText = errors.join('\n');
-          toastHandler(ToastType.Error, errors[0]);
-          
-          // Mostrar opciones adicionales
-          setTimeout(() => {
-            errors.slice(1).forEach((msg, index) => {
-              setTimeout(() => {
-                toastHandler(ToastType.Info, msg);
-              }, (index + 1) * 1500);
-            });
-          }, 1000);
-          
-          setIsSignupFormLoading(false);
-          return;
-        } else {
-          errorText = errors[0];
-        }
+        errorText = error.response.data.errors[0];
       } else if (error?.message) {
         errorText = error.message;
       }
@@ -168,11 +144,14 @@ const SignupPage = () => {
           disabled={isSignupFormLoading}
         />
 
-        <EmailValidationField
+        <FormRow
+          text='Correo Electrónico'
+          type='email'
+          name='email'
+          id='email'
+          placeholder='tu-email@ejemplo.com'
           value={userInputs.email}
-          onChange={handleInputChange}
-          onValidationChange={handleEmailValidationChange}
-          placeholder='tu-email@gmail.com, @yahoo.com, @hotmail.com...'
+          handleChange={handleInputChange}
           disabled={isSignupFormLoading}
         />
 

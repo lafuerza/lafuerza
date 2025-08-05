@@ -1,10 +1,10 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
+  FormRow,
   LoginAndSignupLayout,
   PasswordRow,
   Title,
 } from '../components';
-import EmailValidationField from '../components/EmailValidationField/EmailValidationField';
 import {
   TEST_USER,
   SUPER_ADMIN,
@@ -32,15 +32,10 @@ const LoginPage = () => {
   const [userInputs, setUserInputs] = useState(initialLoginState);
   const [activeBtnLoader, setActiveBtnLoader] = useState('');
   const [showAdminFields, setShowAdminFields] = useState(false);
-  const [emailValidation, setEmailValidation] = useState({ isValid: false, message: '' });
   const locationOfLogin = useLocation();
 
   const handleUserInput = (e) => {
     setUserInputs({ ...userInputs, [e.target.name]: e.target.value });
-  };
-
-  const handleEmailValidationChange = (validation) => {
-    setEmailValidation(validation);
   };
 
   // usado para todos los botones
@@ -73,13 +68,6 @@ const LoginPage = () => {
         toastHandler(ToastType.Error, 'Por favor ingresa tu email');
         return;
       }
-      
-      // Validar que el email sea válido antes de enviar
-      if (!emailValidation.isValid && clickType !== LOGIN_CLICK_TYPE.AdminClick) {
-        toastHandler(ToastType.Error, 'Por favor ingresa un email válido y existente');
-        return;
-      }
-      
       if (!userInputs.password.trim()) {
         toastHandler(ToastType.Error, 'Por favor ingresa tu contraseña');
         return;
@@ -116,28 +104,9 @@ const LoginPage = () => {
       let errorText = 'Error al iniciar sesión. Intenta nuevamente.';
       
       if (error?.response?.data?.errors && error.response.data.errors.length > 0) {
-        const errors = error.response.data.errors;
-        if (errors.length > 1) {
-          // Mostrar mensaje detallado para cuentas no existentes
-          errorText = errors.join('\n');
-          toastHandler(ToastType.Error, errors[0]);
-          
-          // Mostrar opciones adicionales
-          setTimeout(() => {
-            errors.slice(1).forEach((msg, index) => {
-              setTimeout(() => {
-                toastHandler(ToastType.Info, msg);
-              }, (index + 1) * 1500);
-            });
-          }, 1000);
-          
-          setActiveBtnLoader('');
-          return;
-        } else {
-          errorText = errors[0];
-        }
-      } else if (error?.response?.data?.error) {
-        errorText = error.response.data.error;
+        errorText = error.response.data.errors[0];
+      } else if (error?.message) {
+        errorText = error.message;
       }
       
       toastHandler(ToastType.Error, errorText);
@@ -161,14 +130,16 @@ const LoginPage = () => {
       <Title>Iniciar Sesión</Title>
 
       <form onSubmit={(e) => handleSubmit(e, LOGIN_CLICK_TYPE.RegisterClick)}>
-        <EmailValidationField
+        <FormRow
+          text='Correo Electrónico'
+          type='email'
+          name='email'
+          id='email'
+          placeholder='tu-email@ejemplo.com'
           value={userInputs.email}
-          onChange={handleUserInput}
-          onValidationChange={handleEmailValidationChange}
-          placeholder='tu-email@gmail.com, @yahoo.com, @hotmail.com...'
+          handleChange={handleUserInput}
           disabled={!!activeBtnLoader}
         />
-        
         <PasswordRow
           text='Ingresa tu Contraseña'
           name='password'

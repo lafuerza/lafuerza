@@ -5,7 +5,7 @@ import styles from './SingleProductPage.module.css';
 import { Error, Price } from '../../components';
 import {
   LOGIN_TOAST,
-  calculateDiscountPercentMemo,
+  calculateDiscountPercent,
   isPresent,
 } from '../../utils/utils';
 import { AiFillCheckCircle, AiFillStar } from 'react-icons/ai';
@@ -99,7 +99,7 @@ const SingleProductPage = () => {
     stars,
   } = singleProductData;
 
-  const discountPercent = calculateDiscountPercentMemo(price, originalPrice);
+  const discountPercent = calculateDiscountPercent(price, originalPrice);
   const inStock = stock > 0;
 
   const isSinglePageProductInCart = isPresent(
