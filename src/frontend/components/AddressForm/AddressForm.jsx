@@ -447,7 +447,25 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
             </div>
           ) : (
            <div className={styles.pickupSection}>
-             <StoreLocationMap />
+             <div className={styles.storeImageContainer}>
+               <div className={styles.storeImageHeader}>
+                 <h4>🏪 Yero Shop! - Tu tienda de confianza</h4>
+                 <p>Ven a recoger tu pedido en nuestra ubicación</p>
+               </div>
+               <div className={styles.storeImageWrapper}>
+                 <img 
+                   src="https://f005.backblazeb2.com/file/120000/Yero+Shop/lovepik.png" 
+                   alt="Yero Shop! - Tienda" 
+                   className={styles.storeImage}
+                 />
+               </div>
+               <div className={styles.storeDetails}>
+                 <p><strong>📍 Ubicación:</strong> Santiago de Cuba, Cuba</p>
+                 <p><strong>📞 WhatsApp:</strong> +53 54690878</p>
+                 <p><strong>🕒 Horarios:</strong> Lunes a Domingo</p>
+                 <p><strong>🗺️ Coordenadas:</strong> 20.039585, -75.849663</p>
+               </div>
+             </div>
             <div className={styles.formGroup}>
               <label htmlFor='additionalInfo'>💬 ¿Quieres aclararnos algo?</label>
               <textarea
