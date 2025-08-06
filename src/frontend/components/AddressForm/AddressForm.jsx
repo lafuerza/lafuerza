@@ -1,10 +1,11 @@
 import { SERVICE_TYPES, ToastType, COUNTRY_CODES } from '../../constants/constants';
 import { useConfigContext } from '../../contexts/ConfigContextProvider';
 import { useAllProductsContext } from '../../contexts/ProductsContextProvider';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { v4 as uuid } from 'uuid';
 import FormRow from '../FormRow';
 import Price from '../Price';
+import StoreLocationMap from '../StoreLocationMap/StoreLocationMap';
 import styles from './AddressForm.module.css';
 import {
   toastHandler,
@@ -19,46 +20,46 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
 
   const isEditing = !!isEditingAndData;
 
-  // FUNCIÓN MEJORADA PARA VERIFICAR ENVÍO DISPONIBLE CON SINCRONIZACIÓN EN TIEMPO REAL
-  const hasShippingAvailableInCart = useCallback(() => {
-    // 1. Obtener productos actualizados desde localStorage (configuración del admin)
-    const savedConfig = localStorage.getItem('adminStoreConfig');
-    let adminProducts = [];
-    
-    if (savedConfig) {
-      try {
-        const parsedConfig = JSON.parse(savedConfig);
-        adminProducts = parsedConfig.products || [];
-      } catch (error) {
-        console.error('Error al cargar productos del admin:', error);
-      }
-    }
-
-    // 2. Verificar cada producto en el carrito
-    return cart.some(cartItem => {
-      // Extraer el ID del producto (sin el color)
-      const productId = cartItem._id.split('#')[0] || cartItem._id;
-      
-      // Buscar el producto en la configuración del admin (datos más actualizados)
-      const adminProduct = adminProducts.find(p => p._id === productId);
-      
-      // Si encontramos el producto en la configuración del admin, usar esos datos
-      if (adminProduct) {
-        console.log(`🔍 Producto ${adminProduct.name}: envío disponible = ${adminProduct.isShippingAvailable}`);
-        return adminProduct.isShippingAvailable === true;
-      }
-      
-      // Si no está en la configuración del admin, usar los datos del carrito
-      console.log(`⚠️ Producto ${cartItem.name}: usando datos del carrito = ${cartItem.isShippingAvailable}`);
-      return cartItem.isShippingAvailable === true;
-    });
-  }, [cart]);
-
   // ESTADO REACTIVO PARA DETECTAR CAMBIOS EN TIEMPO REAL
   const [canUseHomeDelivery, setCanUseHomeDelivery] = useState(false);
 
   // EFECTO PARA ACTUALIZAR EL ESTADO CUANDO CAMBIE EL CARRITO O LA CONFIGURACIÓN
   useEffect(() => {
+    // FUNCIÓN MEJORADA PARA VERIFICAR ENVÍO DISPONIBLE CON SINCRONIZACIÓN EN TIEMPO REAL
+    const hasShippingAvailableInCart = () => {
+      // 1. Obtener productos actualizados desde localStorage (configuración del admin)
+      const savedConfig = localStorage.getItem('adminStoreConfig');
+      let adminProducts = [];
+      
+      if (savedConfig) {
+        try {
+          const parsedConfig = JSON.parse(savedConfig);
+          adminProducts = parsedConfig.products || [];
+        } catch (error) {
+          console.error('Error al cargar productos del admin:', error);
+        }
+      }
+
+      // 2. Verificar cada producto en el carrito
+      return cart.some(cartItem => {
+        // Extraer el ID del producto (sin el color)
+        const productId = cartItem._id.split('#')[0] || cartItem._id;
+        
+        // Buscar el producto en la configuración del admin (datos más actualizados)
+        const adminProduct = adminProducts.find(p => p._id === productId);
+        
+        // Si encontramos el producto en la configuración del admin, usar esos datos
+        if (adminProduct) {
+          console.log(`🔍 Producto ${adminProduct.name}: envío disponible = ${adminProduct.isShippingAvailable}`);
+          return adminProduct.isShippingAvailable === true;
+        }
+        
+        // Si no está en la configuración del admin, usar los datos del carrito
+        console.log(`⚠️ Producto ${cartItem.name}: usando datos del carrito = ${cartItem.isShippingAvailable}`);
+        return cartItem.isShippingAvailable === true;
+      });
+    };
+
     const updateShippingAvailability = () => {
       const hasShipping = hasShippingAvailableInCart();
       console.log(`🚚 Actualización de envío disponible: ${hasShipping}`);
@@ -92,7 +93,7 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
       window.removeEventListener('forceStoreUpdate', handleConfigUpdate);
       window.removeEventListener('adminConfigChanged', handleConfigUpdate);
     };
-  }, [cart, hasShippingAvailableInCart]); // Dependencia del carrito para reaccionar a cambios
+  }, [cart]); // Dependencia del carrito para reaccionar a cambios
 
   const defaultState = {
     username: '',
@@ -445,6 +446,8 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
               </div>
             </div>
           ) : (
+           <div className={styles.pickupSection}>
+             <StoreLocationMap />
             <div className={styles.formGroup}>
               <label htmlFor='additionalInfo'>💬 ¿Quieres aclararnos algo?</label>
               <textarea
@@ -456,6 +459,7 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
                 onChange={handleInputChange}
               />
             </div>
+           </div>
           )}
         </div>
 

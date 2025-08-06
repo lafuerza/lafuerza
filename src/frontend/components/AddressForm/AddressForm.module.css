@@ -220,6 +220,18 @@
   margin-bottom: 0;
 }
 
+.pickupSection {
+  background: var(--green-50);
+  padding: 1.5rem;
+  border-radius: var(--borderRadius);
+  border: 2px solid var(--green-200);
+  margin: 1rem 0;
+}
+
+.pickupSection .formGroup:last-child {
+  margin-bottom: 0;
+}
+
 .formBtnContainer {
   padding: 1.5rem 2rem;
   border-top: 2px solid var(--grey-200);
