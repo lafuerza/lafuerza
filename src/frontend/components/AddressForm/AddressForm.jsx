@@ -6,7 +6,6 @@ import { v4 as uuid } from 'uuid';
 import FormRow from '../FormRow';
 import Price from '../Price';
 import StoreLocationMap from '../StoreLocationMap/StoreLocationMap';
-import PaymentMethodSelector from '../PaymentMethodSelector/PaymentMethodSelector';
 import styles from './AddressForm.module.css';
 import {
   toastHandler,
@@ -123,9 +122,6 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
       ...isEditingAndData,
       countryCode: isEditingAndData.countryCode || '+53',
       receiverCountryCode: isEditingAndData.receiverCountryCode || '+53',
-      paymentMethod: isEditingAndData.paymentMethod || 'cash',
-      bankTransferFee: isEditingAndData.bankTransferFee || 0,
-      totalWithPaymentMethod: isEditingAndData.totalWithPaymentMethod || 0,
     } : defaultState
   );
 
@@ -148,17 +144,6 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
     isValid: true,
     message: ''
   });
-
-  // Manejar cambio de método de pago
-  const handlePaymentMethodChange = (paymentData) => {
-    setPaymentMethodData(paymentData);
-    setInputs(prev => ({
-      ...prev,
-      paymentMethod: paymentData.method,
-      bankTransferFee: paymentData.fee,
-      totalWithPaymentMethod: paymentData.total
-    }));
-  };
 
   // Función para validar número móvil
   const validateMobileNumber = (countryCode, number) => {
@@ -257,9 +242,6 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
       deliveryCost: inputs.serviceType === SERVICE_TYPES.HOME_DELIVERY 
         ? SANTIAGO_ZONES.find(zone => zone.id === inputs.zone)?.cost || 0
         : 0,
-      paymentMethod: paymentMethodData.method,
-      bankTransferFee: paymentMethodData.fee,
-      totalWithPaymentMethod: paymentMethodData.total
     };
 
     if (isAdding) {
@@ -489,12 +471,6 @@ const AddressForm = ({ isAdding, isEditingAndData = null, closeForm }) => {
            </div>
           )}
         </div>
-
-        {/* Selector de Método de Pago */}
-        <PaymentMethodSelector 
-          onPaymentMethodChange={handlePaymentMethodChange}
-          selectedMethod={inputs.paymentMethod}
-        />
 
         <div className={styles.formBtnContainer}>
           <button 

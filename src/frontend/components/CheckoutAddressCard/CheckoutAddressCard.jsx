@@ -21,15 +21,11 @@ const CheckoutAddressCard = ({
     receiverName,
     receiverPhone,
     additionalInfo,
-    paymentMethod,
-    bankTransferFee,
-    totalWithPaymentMethod
   } = singleAddress;
 
   const isActiveAddress = addressId === activeAddressId;
   const isHomeDelivery = serviceType === SERVICE_TYPES.HOME_DELIVERY;
   const zoneName = isHomeDelivery ? SANTIAGO_ZONES.find(z => z.id === zone)?.name : '';
-  const isUsingBankTransfer = paymentMethod === 'bank_transfer';
 
   return (
     <article
@@ -56,30 +52,6 @@ const CheckoutAddressCard = ({
         
         <p><strong>Móvil contacto:</strong> {mobile}</p>
         
-        {/* Información del método de pago */}
-        <div className={styles.paymentInfo}>
-          <p><strong>💳 Método de pago:</strong> 
-            <span className={`${styles.paymentMethod} ${isUsingBankTransfer ? styles.bankTransfer : styles.cash}`}>
-              {isUsingBankTransfer ? '🏦 Transferencia Bancaria' : '💰 Pago en Efectivo'}
-            </span>
-          </p>
-          {isUsingBankTransfer && bankTransferFee > 0 && (
-            <p className={styles.bankFeeInfo}>
-              <strong>⚠️ Recargo (+20%):</strong> 
-              <span className={styles.feeAmount}>
-                +<Price amount={bankTransferFee} showCurrencyCode={true} />
-              </span>
-            </p>
-          )}
-          {totalWithPaymentMethod > 0 && (
-            <p className={styles.totalWithPayment}>
-              <strong>💰 Total con método de pago:</strong> 
-              <span className={styles.totalAmount}>
-                <Price amount={totalWithPaymentMethod} showCurrencyCode={true} />
-              </span>
-            </p>
-          )}
-        </div>
       </label>
 
       <input

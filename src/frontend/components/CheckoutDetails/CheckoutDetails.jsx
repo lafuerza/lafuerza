@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 const CheckoutDetails = ({
   timer,
   activeAddressId: activeAddressIdFromProps,
+  paymentMethodData,
   updateCheckoutStatus,
 }) => {
   const {
@@ -49,9 +50,10 @@ const CheckoutDetails = ({
     ? (selectedAddress?.deliveryCost || 0)
     : 0;
 
-  // Calcular recargo por método de pago
-  const paymentMethodFee = selectedAddress?.bankTransferFee || 0;
-  const isUsingBankTransfer = selectedAddress?.paymentMethod === 'bank_transfer';
+  // Calcular recargo por método de pago desde el selector externo
+  const paymentMethodFee = paymentMethodData?.fee || 0;
+  const isUsingBankTransfer = paymentMethodData?.method === 'bank_transfer';
+
   // Calcular descuento del cupón según la moneda seleccionada
   const priceAfterCouponApplied = activeCoupon
     ? -Math.floor((totalAmountFromContext * activeCoupon.discountPercent) / 100)
