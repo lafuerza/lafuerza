@@ -187,6 +187,11 @@ const CouponSearch = ({ activeCoupon, updateActiveCoupon }) => {
 
   // ESCUCHAR EVENTOS DE ACTUALIZACIÓN MEJORADOS CON VERIFICACIÓN
   useEffect(() => {
+    const updateShippingAvailability = () => {
+      // Función para actualizar disponibilidad de envío
+      console.log('🔄 Actualizando disponibilidad de envío en CouponSearch');
+    };
+
     const handleProductsUpdate = (event) => {
       const { products: updatedProducts } = event.detail;
       console.log('📡 Evento de actualización de productos detectado en CouponSearch');
