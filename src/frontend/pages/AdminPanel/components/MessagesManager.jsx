@@ -11,6 +11,103 @@ const MessagesManager = () => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Mensajes predefinidos de la tienda organizados por categorías
+  const defaultMessages = {
+    navigation: {
+      'Explorar': 'Explorar',
+      'Iniciar Sesión': 'Iniciar Sesión',
+      'Perfil': 'Perfil',
+      'Direcciones': 'Direcciones',
+      'Panel de Control': 'Panel de Control',
+      'cerrar sesión': 'cerrar sesión'
+    },
+    products: {
+      'Productos Destacados': 'Productos Destacados',
+      'Categorías': 'Categorías',
+      'En Stock': 'En Stock',
+      'Agotado': 'Agotado',
+      'Envío Disponible': 'Envío Disponible',
+      'Agregar al Carrito': 'Agregar al Carrito',
+      'Agregar a Lista de Deseos': 'Agregar a Lista de Deseos',
+      'Ir al Carrito': 'Ir al Carrito',
+      'Ir a Lista de Deseos': 'Ir a Lista de Deseos',
+      'Mover a Lista de Deseos': 'Mover a Lista de Deseos',
+      'Mover al Carrito': 'Mover al Carrito',
+      'Remover del Carrito': 'Remover del Carrito',
+      'Limpiar Carrito': 'Limpiar Carrito',
+      'Limpiar Lista de Deseos': 'Limpiar Lista de Deseos'
+    },
+    cart: {
+      'carrito': 'carrito',
+      'lista de deseos': 'lista de deseos',
+      'Detalles del Precio del Carrito': 'Detalles del Precio del Carrito',
+      'Precio Total': 'Precio Total',
+      'Finalizar Compra': 'Finalizar Compra',
+      'Tu carrito está vacío! ☹️': 'Tu carrito está vacío! ☹️',
+      'Tu lista de deseos está vacía! ☹️': 'Tu lista de deseos está vacía! ☹️'
+    },
+    checkout: {
+      'Finalizar Compra': 'Finalizar Compra',
+      'Elige una dirección de entrega': 'Elige una dirección de entrega',
+      'Detalles del Precio': 'Detalles del Precio',
+      'Entrega a domicilio': 'Entrega a domicilio',
+      'Recoger en local': 'Recoger en local',
+      'Realizar Pedido por WhatsApp': 'Realizar Pedido por WhatsApp',
+      'Tu pedido se ha realizado exitosamente 🎉': 'Tu pedido se ha realizado exitosamente 🎉'
+    },
+    forms: {
+      'Nombre': 'Nombre',
+      'Apellido': 'Apellido',
+      'Correo Electrónico': 'Correo Electrónico',
+      'Contraseña': 'Contraseña',
+      'Confirmar Contraseña': 'Confirmar Contraseña',
+      'Iniciar Sesión': 'Iniciar Sesión',
+      'Registrarse': 'Registrarse',
+      'Crear Nueva Cuenta': 'Crear Nueva Cuenta',
+      'Iniciar como Invitado': 'Iniciar como Invitado',
+      'Acceso Administrador': 'Acceso Administrador'
+    },
+    address: {
+      'Nueva Dirección': 'Nueva Dirección',
+      'Editar Dirección': 'Editar Dirección',
+      'Agregar nueva dirección': 'Agregar nueva dirección',
+      'Tipo de Servicio': 'Tipo de Servicio',
+      'Entrega a domicilio': 'Entrega a domicilio',
+      'Pedido para recoger en el local': 'Pedido para recoger en el local',
+      'Dirección': 'Dirección',
+      'Número de Móvil': 'Número de Móvil',
+      '¿Quién recibe el pedido?': '¿Quién recibe el pedido?',
+      '¿Quieres aclararnos algo?': '¿Quieres aclararnos algo?'
+    },
+    buttons: {
+      'Guardar': 'Guardar',
+      'Cancelar': 'Cancelar',
+      'Editar': 'Editar',
+      'Eliminar': 'Eliminar',
+      'Actualizar': 'Actualizar',
+      'Restablecer': 'Restablecer',
+      'Limpiar Filtros': 'Limpiar Filtros',
+      'Aplicar': 'Aplicar',
+      'Exportar': 'Exportar',
+      'Importar': 'Importar'
+    },
+    notifications: {
+      'Sesión cerrada exitosamente': 'Sesión cerrada exitosamente',
+      'Producto agregado al carrito': 'Producto agregado al carrito',
+      'Producto agregado a lista de deseos': 'Producto agregado a lista de deseos',
+      'Carrito limpiado exitosamente': 'Carrito limpiado exitosamente',
+      'Lista de deseos limpiada exitosamente': 'Lista de deseos limpiada exitosamente',
+      'Por favor inicia sesión para continuar': 'Por favor inicia sesión para continuar',
+      'Configuración guardada exitosamente': 'Configuración guardada exitosamente'
+    },
+    errors: {
+      'Error': 'Error',
+      'Error: Producto No Encontrado': 'Error: Producto No Encontrado',
+      'Por favor completa todos los campos obligatorios': 'Por favor completa todos los campos obligatorios',
+      'Por favor ingresa un email válido': 'Por favor ingresa un email válido',
+      'La contraseña debe tener al menos 6 caracteres': 'La contraseña debe tener al menos 6 caracteres',
+      'Las contraseñas no coinciden': 'Las contraseñas no coinciden'
+    }
+  };
 
   useEffect(() => {
     // Cargar mensajes desde localStorage o usar los predeterminados
@@ -32,6 +129,16 @@ const MessagesManager = () => {
     setHasUnsavedChanges(false);
     toastHandler(ToastType.Success, '✅ Mensajes guardados en memoria');
     toastHandler(ToastType.Info, 'Para aplicar los cambios, ve a "💾 Exportar/Importar" y exporta la configuración');
+    
+    // Disparar eventos de sincronización
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('messagesUpdated', { 
+        detail: { messages: newMessages } 
+      }));
+      window.dispatchEvent(new CustomEvent('adminPanelSync', { 
+        detail: { type: 'messages', data: newMessages } 
+      }));
+    }, 10);
   };
 
   const handleMessageEdit = (category, key, newValue) => {
@@ -56,6 +163,16 @@ const MessagesManager = () => {
       localStorage.setItem('storeMessages', JSON.stringify(defaultMessages));
       setHasUnsavedChanges(false);
       toastHandler(ToastType.Success, 'Mensajes restablecidos a valores por defecto');
+      
+      // Disparar eventos de sincronización
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('messagesUpdated', { 
+          detail: { messages: defaultMessages } 
+        }));
+        window.dispatchEvent(new CustomEvent('adminPanelSync', { 
+          detail: { type: 'messages', data: defaultMessages } 
+        }));
+      }, 10);
     }
   };
 

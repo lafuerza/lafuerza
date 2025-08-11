@@ -12,11 +12,9 @@ import {
   calculateDiscountPercent,
   isPresent,
 } from '../../utils/utils';
-  getProductBankTransferInfo,
 import { useAllProductsContext } from '../../contexts/ProductsContextProvider';
-import { useCurrencyContext } from '../../contexts/CurrencyContextProvider';
 import { useAuthContext } from '../../contexts/AuthContextProvider';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const ProductCard = ({ product }) => {
   const navigate = useNavigate();
@@ -32,19 +30,33 @@ const ProductCard = ({ product }) => {
     addToWishlistDispatch,
     removeFromWishlistDispatch,
   } = useAllProductsContext();
-  const { formatPriceWithCode } = useCurrencyContext();
 
+  // ESCUCHAR EVENTOS DE SINCRONIZACIÓN PARA ACTUALIZAR PRODUCTOS
+  useEffect(() => {
+    const handleProductSync = (event) => {
+      const { type } = event.detail;
+      if (type === 'products' || type === 'paymentconfig' || type === 'couponproducts') {
+        console.log('📡 Sincronización de productos detectada en ProductCard');
+        // Los productos se actualizarán automáticamente a través del contexto
+      }
+    };
+
+    window.addEventListener('adminPanelSync', handleProductSync);
+
+    return () => {
+      window.removeEventListener('adminPanelSync', handleProductSync);
+    };
+  }, []);
   const { colors, stock } = product;
   const inStock = stock > 0;
+
+  // Obtener información de pago
+  const paymentType = product.paymentType || 'both';
+  const transferFeePercentage = product.transferFeePercentage || 5;
 
   const [activeColorObj, setActiveColorObj] = useState(colors[0]);
 
   const [isBothDisable, setIsBothBtnDisable] = useState(false);
-
-  // Obtener información de transferencia bancaria
-  const bankTransferInfo = getProductBankTransferInfo(product);
-  const showBankTransferInfo = bankTransferInfo.isEnabled && bankTransferInfo.surchargePercent > 0;
-  const productBankTransferSurcharge = bankTransferInfo.surchargePercent;
 
   const isProductInCart = isPresent(
     isCardInWishlistPage
@@ -175,6 +187,22 @@ const ProductCard = ({ product }) => {
           )}
         </main>
 
+        <div className={styles.paymentInfo}>
+          {paymentType === 'cash' && (
+            <span className={styles.paymentCash}>💰 Solo Efectivo</span>
+          )}
+          {paymentType === 'transfer' && (
+            <span className={styles.paymentTransfer}>
+              💳 Solo Transferencia (+{transferFeePercentage}%)
+            </span>
+          )}
+          {paymentType === 'both' && (
+            <span className={styles.paymentBoth}>
+              💰💳 Efectivo y Transferencia (+{transferFeePercentage}%)
+            </span>
+          )}
+        </div>
+
         <div
           className={
             isCardInWishlistPage
@@ -197,13 +225,6 @@ const ProductCard = ({ product }) => {
             </span>
           ))}
         </div>
-
-        {showBankTransferInfo && (
-          <div className={styles.bankTransferBadge}>
-            <span className={styles.bankIcon}>🏦</span>
-            <span className={styles.bankText}>+{productBankTransferSurcharge}% transferencia</span>
-          </div>
-        )}
 
         <footer className={styles.footer}>
           <button
