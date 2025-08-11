@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useEffect } from 'react';
 import { useAuthContext } from '../../contexts/AuthContextProvider';
 import { Navigate } from 'react-router-dom';
 import ProductManager from './components/ProductManager';
